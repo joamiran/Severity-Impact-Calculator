@@ -1,3 +1,3 @@
-# SEV Escalation Calculator
+# SEV Escalation + Customer Impact
 
-This tool determines the SEV level based on Amazon RME policy.
+Streamlit app with SEV classification and IB/OB customer impact calculator.
