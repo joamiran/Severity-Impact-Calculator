@@ -26,10 +26,10 @@ all_sites = {**default_sites, **st.session_state.custom_sites}
 
 with st.expander("+ Add Custom Site"):
     new_site = st.text_input("Custom Site Name (e.g., BDL3)")
-    ob_units = st.number_input("OB Units Threshold", min_value=1000, value=10000, key="ob_units")
-    ob_shipments = st.number_input("OB Shipments Threshold", min_value=1000, value=5000, key="ob_shipments")
-    ib_units = st.number_input("IB Units Threshold", min_value=10000, value=25000, key="ib_units")
-    lph = st.number_input("LPH Threshold", min_value=50, value=100, key="lph")
+    ob_units = st.number_input("OB Units Threshold", min_value=1000, value=10000, key="ob_units_custom")
+    ob_shipments = st.number_input("OB Shipments Threshold", min_value=1000, value=5000, key="ob_shipments_custom")
+    ib_units = st.number_input("IB Units Threshold", min_value=10000, value=25000, key="ib_threshold_input")
+    lph = st.number_input("LPH Threshold", min_value=50, value=100, key="lph_custom")
     if st.button("Add Site"):
         if new_site:
             st.session_state.custom_sites[new_site] = {
@@ -110,7 +110,7 @@ with tab1:
 # TAB 2: Customer Impact
 with tab2:
     st.header("Customer Impact Calculator")
-    ib_units = st.number_input("Inbound Units Lost", min_value=0, key="ib_units")
+    ib_units = st.number_input("Inbound Units Lost", min_value=0, key="ib_units_tab2")
     ib_throughput = st.number_input("Avg IB Throughput/hr", value=500, min_value=1, key="ib_throughput")
     ib_delay = ib_units / ib_throughput
     ob_units = st.number_input("Outbound Units Lost", min_value=0, key="ob_units")
@@ -139,7 +139,6 @@ with tab3:
         df = pd.DataFrame(st.session_state['log'])
         st.dataframe(df)
 
-        # Charts
         st.subheader("SEV Level Distribution")
         sev_counts = df["SEV"].value_counts()
         fig1, ax1 = plt.subplots()
