@@ -1,2 +1,2 @@
-# SEV Escalation App
-Now includes ability to add and use custom sites dynamically.
+# SEV Escalation App with Charts
+Includes logging and basic visualizations for SEV data.
