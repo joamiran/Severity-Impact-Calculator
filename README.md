@@ -1,3 +1,3 @@
-# SEV Escalation + Customer Impact + Logging
+# SEV Escalation Advanced
 
-Includes SEV calculator, customer impact, and log history with CSV export.
+Includes site-specific thresholds, checklist validation, summary generation, and customer impact logging.

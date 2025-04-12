@@ -4,19 +4,26 @@ import pandas as pd
 from datetime import datetime
 
 st.set_page_config(page_title="SEV Escalation + Customer Impact", layout="centered")
-
 st.title("SEV Escalation & Customer Impact Calculator")
 
-# Initialize session state for logs
+# Site-specific thresholds
+site_thresholds = {
+    "YXU1": {"ob_units": 10000, "ob_shipments": 5000, "ib_units": 25000, "lph": 100},
+    "YYZ2": {"ob_units": 7000, "ob_shipments": 3000, "ib_units": 18000, "lph": 80},
+    "LAX9": {"ob_units": 12000, "ob_shipments": 6000, "ib_units": 30000, "lph": 120},
+}
+
 if 'log' not in st.session_state:
     st.session_state['log'] = []
 
-# Tabs
 tab1, tab2, tab3 = st.tabs(["SEV Escalation", "Customer Impact", "Logs"])
 
-# --- SEV ESCALATION TAB ---
+# --- TAB 1: SEV ESCALATION ---
 with tab1:
     st.header("SEV Escalation Calculator")
+
+    site = st.selectbox("Select Site", list(site_thresholds.keys()))
+    thresholds = site_thresholds[site]
 
     multi_site = st.radio("Are 2 or more sites impacted?", ["No", "Yes"])
     full_ob_down = st.radio("Is the entire Outbound path down for more than 1 hour with no ETR?", ["No", "Yes"])
@@ -35,7 +42,10 @@ with tab1:
         if multi_site == "Yes" or full_ob_down == "Yes":
             sev_level = "SEV1"
             reason = "Multiple sites impacted or full Outbound path is down without ETR."
-        elif lph >= 100 or ob_units_lost >= 10000 or ob_shipments_missed >= 5000 or ib_units_lost >= 25000:
+        elif (lph >= thresholds['lph'] or 
+              ob_units_lost >= thresholds['ob_units'] or 
+              ob_shipments_missed >= thresholds['ob_shipments'] or 
+              ib_units_lost >= thresholds['ib_units']):
             if mitigation == "No" or root_cause_known == "No" or fix_within_30 == "No":
                 sev_level = "SEV2"
                 reason = "Thresholds exceeded and either no mitigation or unclear root cause."
@@ -43,60 +53,88 @@ with tab1:
             sev_level = "SEV2"
             reason = "No mitigation available and fix will exceed 30 minutes."
 
-        st.session_state['last_sev'] = {
-            "Timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        # Justification Checklist
+        st.subheader("Justification Checklist")
+        l7_involved = st.checkbox("Site Leadership (L7+) involved")
+        attempted_mitigation = st.checkbox("Attempted mitigation")
+        workaround = st.checkbox("Workaround in place or attempted")
+        repeated_issue = st.checkbox("Similar issue occurred in last 7 days")
+
+        if not all([l7_involved, attempted_mitigation, workaround]):
+            st.warning("Escalation checklist not fully validated. Review with RME and Ops.")
+
+        # Generate summary
+        st.markdown("### SEV Summary")
+        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        summary = (
+            f"**{sev_level} Raised**  
+"
+            f"**Time:** {timestamp}  
+"
+            f"**Site:** {site}  
+"
+            f"**LPH:** {lph} | **OB Units Lost:** {ob_units_lost} | **Shipments Missed:** {ob_shipments_missed}  
+"
+            f"**IB Units Lost:** {ib_units_lost}  
+"
+            f"**Mitigation:** {mitigation} | **Root Cause Known:** {root_cause_known} | **Fix < 30 min:** {fix_within_30}  
+"
+            f"**Reason:** {reason}  
+"
+            f"**Checklist:** L7 Involved: {l7_involved} | Mitigation Attempted: {attempted_mitigation} | Repeat Issue: {repeated_issue}"
+        )
+        st.markdown(summary)
+
+        st.session_state['last_summary'] = summary
+        st.session_state['last_log'] = {
+            "Time": timestamp,
+            "Site": site,
+            "SEV": sev_level,
             "LPH": lph,
             "OB Units Lost": ob_units_lost,
             "OB Shipments Missed": ob_shipments_missed,
             "IB Units Lost": ib_units_lost,
             "Mitigation": mitigation,
-            "SEV Level": sev_level,
-            "Reason": reason
+            "Root Cause Known": root_cause_known,
+            "Fix <30 min": fix_within_30,
+            "Checklist L7": l7_involved,
+            "Checklist Mitigation": attempted_mitigation,
+            "Repeat Issue": repeated_issue,
+            "SEV Reason": reason
         }
 
-        st.markdown(f"### Severity Level: **{sev_level}**")
-        st.markdown(f"**Reason:** {reason}")
-
-# --- CUSTOMER IMPACT TAB ---
+# --- TAB 2: CUSTOMER IMPACT ---
 with tab2:
     st.header("Customer Impact Calculator")
 
-    st.subheader("Inbound (IB)")
-    ib_units = st.number_input("Units lost in Inbound", min_value=0, key="ib_units")
-    ib_avg_throughput = st.number_input("Avg. IB throughput per hour", min_value=1, value=500, key="ib_throughput")
-    ib_hours_lost = ib_units / ib_avg_throughput
-    st.markdown(f"**Estimated hours of stow delay:** {ib_hours_lost:.2f} hrs")
+    ib_units = st.number_input("Inbound Units Lost", min_value=0, key="ib_units")
+    ib_throughput = st.number_input("Avg IB Throughput/hr", value=500, min_value=1, key="ib_throughput")
+    ib_delay = ib_units / ib_throughput
 
-    st.divider()
+    ob_units = st.number_input("Outbound Units Lost", min_value=0, key="ob_units")
+    ob_shipments = st.number_input("Outbound Shipments Missed", min_value=0, key="ob_shipments")
+    units_per_order = st.number_input("Avg Units per Order", value=3, min_value=1, key="units_order")
 
-    st.subheader("Outbound (OB)")
-    ob_units = st.number_input("Outbound units lost", min_value=0, key="ob_units")
-    ob_shipments = st.number_input("Shipments missed", min_value=0, key="ob_shipments")
-    units_per_order = st.number_input("Average units per order", min_value=1, value=3, key="units_per_order")
+    orders_affected = ob_units / units_per_order if units_per_order else 0
+    st.markdown(f"**IB Delay:** {ib_delay:.2f} hrs")
+    st.markdown(f"**Estimated OB Orders Affected:** {orders_affected:.0f}")
+    st.markdown(f"**Shipments Missed:** {ob_shipments}")
 
-    est_orders_affected = ob_units / units_per_order if units_per_order else 0
-    st.markdown(f"**Estimated customer orders affected:** {est_orders_affected:.0f}")
-    st.markdown(f"**Shipments missed:** {ob_shipments}")
+    if st.button("Log Full Entry"):
+        if 'last_log' in st.session_state:
+            log_entry = st.session_state['last_log'].copy()
+            log_entry["IB Delay (hrs)"] = round(ib_delay, 2)
+            log_entry["OB Orders Affected"] = round(orders_affected, 0)
+            st.session_state['log'].append(log_entry)
+            st.success("Full entry logged!")
 
-    if st.button("Log This Entry"):
-        combined_log = st.session_state.get('last_sev', {})
-        combined_log.update({
-            "IB Delay (hrs)": round(ib_hours_lost, 2),
-            "OB Orders Affected": round(est_orders_affected, 0),
-            "OB Shipments Missed": ob_shipments,
-        })
-        st.session_state['log'].append(combined_log)
-        st.success("Logged successfully!")
-
-# --- LOG TAB ---
+# --- TAB 3: LOGS ---
 with tab3:
-    st.header("Logged Events")
-
+    st.header("Event Logs")
     if st.session_state['log']:
         df = pd.DataFrame(st.session_state['log'])
         st.dataframe(df)
-
         csv = df.to_csv(index=False).encode("utf-8")
-        st.download_button("Download Log as CSV", data=csv, file_name="sev_customer_impact_log.csv", mime="text/csv")
+        st.download_button("Download Logs as CSV", csv, "sev_logs.csv", "text/csv")
     else:
-        st.info("No entries logged yet.")
+        st.info("No logs available yet.")
