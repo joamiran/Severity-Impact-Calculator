@@ -1,0 +1,1 @@
+# Severity-Impact-Calculator
