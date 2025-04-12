@@ -1,2 +1,2 @@
-# SEV Escalation App with Charts
-Includes logging and basic visualizations for SEV data.
+# SEV Escalation with Safe Rerun and Charts
+Custom sites work with rerun flag, charts added in Logs tab.

@@ -4,6 +4,11 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from datetime import datetime
 
+# Safe rerun trigger
+if st.session_state.get("trigger_rerun"):
+    st.session_state["trigger_rerun"] = False
+    st.experimental_rerun()
+
 st.set_page_config(page_title="SEV Escalation + Customer Impact", layout="centered")
 st.title("SEV Escalation & Customer Impact Calculator")
 
@@ -20,7 +25,7 @@ if "custom_sites" not in st.session_state:
 all_sites = {**default_sites, **st.session_state.custom_sites}
 
 with st.expander("+ Add Custom Site"):
-    new_site = st.text_input("Custom Site Name (e.g., DEN3)")
+    new_site = st.text_input("Custom Site Name (e.g., BDL3)")
     ob_units = st.number_input("OB Units Threshold", min_value=1000, value=10000, key="ob_units")
     ob_shipments = st.number_input("OB Shipments Threshold", min_value=1000, value=5000, key="ob_shipments")
     ib_units = st.number_input("IB Units Threshold", min_value=10000, value=25000, key="ib_units")
@@ -33,8 +38,8 @@ with st.expander("+ Add Custom Site"):
                 "ib_units": ib_units,
                 "lph": lph
             }
+            st.session_state["trigger_rerun"] = True
             st.success(f"Site {new_site} added!")
-            st.experimental_rerun()
 
 if 'log' not in st.session_state:
     st.session_state['log'] = []
