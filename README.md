@@ -1,3 +1,3 @@
-# SEV Escalation + Customer Impact
+# SEV Escalation + Customer Impact + Logging
 
-Streamlit app with SEV classification and IB/OB customer impact calculator.
+Includes SEV calculator, customer impact, and log history with CSV export.

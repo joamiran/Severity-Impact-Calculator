@@ -1,12 +1,18 @@
 
 import streamlit as st
+import pandas as pd
+from datetime import datetime
 
 st.set_page_config(page_title="SEV Escalation + Customer Impact", layout="centered")
 
 st.title("SEV Escalation & Customer Impact Calculator")
 
+# Initialize session state for logs
+if 'log' not in st.session_state:
+    st.session_state['log'] = []
+
 # Tabs
-tab1, tab2 = st.tabs(["SEV Escalation", "Customer Impact"])
+tab1, tab2, tab3 = st.tabs(["SEV Escalation", "Customer Impact", "Logs"])
 
 # --- SEV ESCALATION TAB ---
 with tab1:
@@ -37,6 +43,17 @@ with tab1:
             sev_level = "SEV2"
             reason = "No mitigation available and fix will exceed 30 minutes."
 
+        st.session_state['last_sev'] = {
+            "Timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "LPH": lph,
+            "OB Units Lost": ob_units_lost,
+            "OB Shipments Missed": ob_shipments_missed,
+            "IB Units Lost": ib_units_lost,
+            "Mitigation": mitigation,
+            "SEV Level": sev_level,
+            "Reason": reason
+        }
+
         st.markdown(f"### Severity Level: **{sev_level}**")
         st.markdown(f"**Reason:** {reason}")
 
@@ -60,3 +77,26 @@ with tab2:
     est_orders_affected = ob_units / units_per_order if units_per_order else 0
     st.markdown(f"**Estimated customer orders affected:** {est_orders_affected:.0f}")
     st.markdown(f"**Shipments missed:** {ob_shipments}")
+
+    if st.button("Log This Entry"):
+        combined_log = st.session_state.get('last_sev', {})
+        combined_log.update({
+            "IB Delay (hrs)": round(ib_hours_lost, 2),
+            "OB Orders Affected": round(est_orders_affected, 0),
+            "OB Shipments Missed": ob_shipments,
+        })
+        st.session_state['log'].append(combined_log)
+        st.success("Logged successfully!")
+
+# --- LOG TAB ---
+with tab3:
+    st.header("Logged Events")
+
+    if st.session_state['log']:
+        df = pd.DataFrame(st.session_state['log'])
+        st.dataframe(df)
+
+        csv = df.to_csv(index=False).encode("utf-8")
+        st.download_button("Download Log as CSV", data=csv, file_name="sev_customer_impact_log.csv", mime="text/csv")
+    else:
+        st.info("No entries logged yet.")
