@@ -1,2 +1,2 @@
-# Final SEV Escalation App
-Cleaned summary format, no syntax errors, includes logging and customer impact.
+# SEV Escalation App
+Now includes ability to add and use custom sites dynamically.

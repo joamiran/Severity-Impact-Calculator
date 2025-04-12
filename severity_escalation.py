@@ -6,12 +6,36 @@ from datetime import datetime
 st.set_page_config(page_title="SEV Escalation + Customer Impact", layout="centered")
 st.title("SEV Escalation & Customer Impact Calculator")
 
-# Site-specific thresholds
-site_thresholds = {
+# Default site thresholds
+default_sites = {
     "YXU1": {"ob_units": 10000, "ob_shipments": 5000, "ib_units": 25000, "lph": 100},
     "YYZ2": {"ob_units": 7000, "ob_shipments": 3000, "ib_units": 18000, "lph": 80},
     "LAX9": {"ob_units": 12000, "ob_shipments": 6000, "ib_units": 30000, "lph": 120},
 }
+
+# Session storage for custom sites
+if "custom_sites" not in st.session_state:
+    st.session_state.custom_sites = {}
+
+# Combine all sites
+all_sites = {**default_sites, **st.session_state.custom_sites}
+
+# Add custom site option
+with st.expander("+ Add Custom Site"):
+    new_site = st.text_input("Custom Site Name (e.g., DEN3)")
+    ob_units = st.number_input("OB Units Threshold", min_value=1000, value=10000)
+    ob_shipments = st.number_input("OB Shipments Threshold", min_value=1000, value=5000)
+    ib_units = st.number_input("IB Units Threshold", min_value=10000, value=25000)
+    lph = st.number_input("LPH Threshold", min_value=50, value=100)
+    if st.button("Add Site"):
+        if new_site:
+            st.session_state.custom_sites[new_site] = {
+                "ob_units": ob_units,
+                "ob_shipments": ob_shipments,
+                "ib_units": ib_units,
+                "lph": lph
+            }
+            st.success(f"Site {new_site} added!")
 
 if 'log' not in st.session_state:
     st.session_state['log'] = []
@@ -22,8 +46,8 @@ tab1, tab2, tab3 = st.tabs(["SEV Escalation", "Customer Impact", "Logs"])
 with tab1:
     st.header("SEV Escalation Calculator")
 
-    site = st.selectbox("Select Site", list(site_thresholds.keys()))
-    thresholds = site_thresholds[site]
+    site = st.selectbox("Select Site", list(all_sites.keys()))
+    thresholds = all_sites[site]
 
     multi_site = st.radio("Are 2 or more sites impacted?", ["No", "Yes"])
     full_ob_down = st.radio("Is the entire Outbound path down for more than 1 hour with no ETR?", ["No", "Yes"])
@@ -73,13 +97,11 @@ with tab1:
             f"Reason: {reason}",
             f"Checklist: L7 Involved: {l7_involved} | Mitigation Attempted: {attempted_mitigation} | Repeat Issue: {repeated_issue}"
         ]
-        summary = "\n".join(summary_lines)
-
         st.markdown("### SEV Summary")
         for line in summary_lines:
             st.markdown(f"- {line}")
 
-        st.session_state['last_summary'] = summary
+        st.session_state['last_summary'] = "\n".join(summary_lines)
         st.session_state['last_log'] = {
             "Time": timestamp,
             "Site": site,
