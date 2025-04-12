@@ -53,7 +53,6 @@ with tab1:
             sev_level = "SEV2"
             reason = "No mitigation available and fix will exceed 30 minutes."
 
-        # Justification Checklist
         st.subheader("Justification Checklist")
         l7_involved = st.checkbox("Site Leadership (L7+) involved")
         attempted_mitigation = st.checkbox("Attempted mitigation")
@@ -63,27 +62,22 @@ with tab1:
         if not all([l7_involved, attempted_mitigation, workaround]):
             st.warning("Escalation checklist not fully validated. Review with RME and Ops.")
 
-        # Generate summary
-        st.markdown("### SEV Summary")
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        summary = (
-            f"**{sev_level} Raised**  
-"
-            f"**Time:** {timestamp}  
-"
-            f"**Site:** {site}  
-"
-            f"**LPH:** {lph} | **OB Units Lost:** {ob_units_lost} | **Shipments Missed:** {ob_shipments_missed}  
-"
-            f"**IB Units Lost:** {ib_units_lost}  
-"
-            f"**Mitigation:** {mitigation} | **Root Cause Known:** {root_cause_known} | **Fix < 30 min:** {fix_within_30}  
-"
-            f"**Reason:** {reason}  
-"
-            f"**Checklist:** L7 Involved: {l7_involved} | Mitigation Attempted: {attempted_mitigation} | Repeat Issue: {repeated_issue}"
-        )
-        st.markdown(summary)
+        summary_lines = [
+            f"{sev_level} Raised",
+            f"Time: {timestamp}",
+            f"Site: {site}",
+            f"LPH: {lph} | OB Units Lost: {ob_units_lost} | Shipments Missed: {ob_shipments_missed}",
+            f"IB Units Lost: {ib_units_lost}",
+            f"Mitigation: {mitigation} | Root Cause Known: {root_cause_known} | Fix < 30 min: {fix_within_30}",
+            f"Reason: {reason}",
+            f"Checklist: L7 Involved: {l7_involved} | Mitigation Attempted: {attempted_mitigation} | Repeat Issue: {repeated_issue}"
+        ]
+        summary = "\n".join(summary_lines)
+
+        st.markdown("### SEV Summary")
+        for line in summary_lines:
+            st.markdown(f"- {line}")
 
         st.session_state['last_summary'] = summary
         st.session_state['last_log'] = {
@@ -127,6 +121,8 @@ with tab2:
             log_entry["OB Orders Affected"] = round(orders_affected, 0)
             st.session_state['log'].append(log_entry)
             st.success("Full entry logged!")
+        else:
+            st.warning("Please complete the SEV Escalation tab before logging.")
 
 # --- TAB 3: LOGS ---
 with tab3:
